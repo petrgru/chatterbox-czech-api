@@ -1,0 +1,23 @@
+nohup: ignoring input
+INFO:     Started server process [1282487]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59284 - "GET /health HTTP/1.1" 200 OK
+INFO:app.services.tts:Loading Chatterbox model on device=cuda
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 77195.78it/s]
+/root/chatterbox-czech-api/.venv/lib/python3.11/site-packages/diffusers/models/lora.py:393: FutureWarning: `LoRACompatibleLinear` is deprecated and will be removed in version 1.0.0. Use of `LoRACompatibleLinear` is deprecated. Please switch to PEFT backend by installing PEFT: `pip install peft`.
+  deprecate("LoRACompatibleLinear", "1.0.0", deprecation_message)
+INFO:root:input frame rate=25
+INFO:app.services.tts:Model loaded (sr=24000, device=cuda)
+/usr/lib/python3.11/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+/root/chatterbox-czech-api/.venv/lib/python3.11/site-packages/transformers/generation/configuration_utils.py:774: UserWarning: `return_dict_in_generate` is NOT set to `True`, but `output_attentions` is. When `return_dict_in_generate` is not `True`, `output_attentions` is ignored.
+  warnings.warn(
+LlamaModel is using LlamaSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention implementation, but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.
+loaded PerthNet (Implicit) at step 250,000
+Sampling:   0%|          | 0/1000 [00:00<?, ?it/s]We detected that you are passing `past_key_values` as a tuple of tuples. This is deprecated and will be removed in v4.47. Please convert your cache or use an appropriate `Cache` class (https://huggingface.co/docs/transformers/kv_cache#legacy-cache-format)
+Sampling:   0%|          | 4/1000 [00:00<00:29, 33.40it/s]Sampling:   1%|          | 10/1000 [00:00<00:22, 43.79it/s]Sampling:   2%|▏         | 16/1000 [00:00<00:20, 47.07it/s]Sampling:   2%|▏         | 22/1000 [00:00<00:20, 48.75it/s]Sampling:   3%|▎         | 28/1000 [00:00<00:19, 49.71it/s]Sampling:   3%|▎         | 34/1000 [00:00<00:19, 50.25it/s]Sampling:   4%|▍         | 40/1000 [00:00<00:18, 50.55it/s]Sampling:   5%|▍         | 46/1000 [00:00<00:18, 50.66it/s]Sampling:   5%|▌         | 52/1000 [00:01<00:19, 49.83it/s]Sampling:   6%|▌         | 58/1000 [00:01<00:18, 50.00it/s]INFO:chatterbox.models.t3.t3:✅ EOS token detected! Stopping generation at step 59
+Sampling:   6%|▌         | 58/1000 [00:01<00:19, 48.94it/s]
+INFO:     127.0.0.1:34426 - "POST /v1/chat HTTP/1.1" 200 OK
+INFO:app.services.tts:Unloading TTS model after 20.0s idle
