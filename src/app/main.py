@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.schemas import ChatRequest, ChatResponse
@@ -11,6 +12,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name)
 _tts_service = TTSService(settings=settings)
+
+# Allow browser clients served from other origins (e.g., Vite preview)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
