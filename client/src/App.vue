@@ -9,6 +9,21 @@
       Text to synthesize
       <textarea v-model="text" rows="4" placeholder="Napište text..."></textarea>
     </label>
+    <div class="file-upload-section">
+      <label class="file-upload-label">
+        Or upload text file (min 200kB recommended)
+        <input 
+          type="file" 
+          accept=".txt,.md,.text" 
+          @change="handleTextFileUpload"
+          ref="textFileInput"
+        />
+        <span class="file-upload-button">📄 Choose Text File</span>
+      </label>
+      <p v-if="uploadedFileName" class="uploaded-file-info">
+        Loaded: {{ uploadedFileName }} ({{ uploadedFileSize }})
+      </p>
+    </div>
     <label>
       Language code
       <input v-model="language" />
@@ -30,14 +45,14 @@
       {{ loading ? 'Working...' : 'Synthesize' }}
     </button>
     <p v-if="error" class="error">{{ error }}</p>
-    <audio v-if="audioSrc" :src="audioSrc" controls></audio>
+    <div v-if="audioSrc" class="audio-section">
+      <audio :src="audioSrc" controls></audio>
+      <button @click="downloadAudio" class="download-button">
+        💾 Download WAV
+      </button>
+    </div>
   </main>
 </template>
-
-<script setup>
-import axios from 'axios';
-import { ref, onMounted } from 'vue';
-
 const text = ref('Třetí přání je výkon pohřební služby');
 const language = ref('cs');
 const speed = ref(1.1);
@@ -46,12 +61,62 @@ const voiceSamples = ref([]);
 const audioSrc = ref('');
 const loading = ref(false);
 const error = ref('');
+const textFileInput = ref(null);
+const uploadedFileName = ref('');
+const uploadedFileSize = ref('');
+const audioBlob = ref(null);;
+const selectedVoiceSample = ref('');
+const voiceSamples = ref([]);
+const audioSrc = ref('');
+const loading = ref(false);
+async function loadVoiceSamples() {
+  try {
+    const res = await axios.get(`${API_BASE}/v1/voice-samples`);
+    voiceSamples.value = res.data.samples;
+  } catch (err) {
+    console.error('Failed to load voice samples:', err);
+  }
+}
 
-const API_BASE = import.meta.env.VITE_API_BASE || (() => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = hostname === 'localhost' ? '8000' : '8000';
-  return `${protocol}//${hostname}:${port}`;
+function handleTextFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const sizeKB = (file.size / 1024).toFixed(1);
+async function synthesize() {
+  loading.value = true;
+  error.value = '';
+  audioSrc.value = '';
+  audioBlob.value = null;
+  
+  try {
+    const payload = {
+      text: text.value,
+      language: language.value,
+      speed: speed.value,
+    };
+    
+    if (selectedVoiceSample.value) {
+      payload.voice_sample_id = selectedVoiceSample.value;
+    }
+    
+    const res = await axios.post(`${API_BASE}/v1/chat`, payload);
+    const { wav_base64 } = res.data;
+    if (!wav_base64) throw new Error('No audio returned');
+    audioSrc.value = `data:audio/wav;base64,${wav_base64}`;
+  } catch (err) {
+    error.value = err?.response?.data?.detail || err.message || 'Request failed';
+  } finally {
+    loading.value = false;
+  }
+} const voiceName = selectedVoiceSample.value 
+    ? voiceSamples.value.find(s => s.id === selectedVoiceSample.value)?.name || 'default'
+    : 'default';
+  link.download = `tts-${voiceName}-${timestamp}.wav`;
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 })();
 
 async function loadVoiceSamples() {
@@ -94,14 +159,77 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-:root {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+button {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background: #4a90e2;
+  color: white;
+  transition: background 0.2s;
 }
-.page {
-  max-width: 600px;
-  margin: 2rem auto;
+button:hover:not(:disabled) {
+  background: #357abd;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #999;
+}
+.error {
+  color: #c00;
+}
+.file-upload-section {
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border: 1px dashed #ddd;
+}
+.file-upload-label {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.file-upload-label input[type="file"] {
+  display: none;
+}
+.file-upload-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: #6c757d;
+  color: white;
+  border-radius: 4px;
+  text-align: center;
+  transition: background 0.2s;
+}
+.file-upload-button:hover {
+  background: #5a6268;
+}
+.uploaded-file-info {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: #27ae60;
+  font-weight: 500;
+}
+.audio-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+.audio-section audio {
+  width: 100%;
+}
+.download-button {
+  background: #27ae60;
+}
+.download-button:hover:not(:disabled) {
+  background: #229954;
+} display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
