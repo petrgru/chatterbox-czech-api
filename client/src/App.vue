@@ -53,6 +53,15 @@
     </div>
   </main>
 </template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+
+const API_BASE = window.location.origin.includes('localhost')
+  ? 'http://localhost:8000'
+  : window.location.origin.replace(/:\d+/, ':8000');
+
 const text = ref('Třetí přání je výkon pohřební služby');
 const language = ref('cs');
 const speed = ref(1.1);
@@ -64,11 +73,8 @@ const error = ref('');
 const textFileInput = ref(null);
 const uploadedFileName = ref('');
 const uploadedFileSize = ref('');
-const audioBlob = ref(null);;
-const selectedVoiceSample = ref('');
-const voiceSamples = ref([]);
-const audioSrc = ref('');
-const loading = ref(false);
+const audioBlob = ref(null);
+
 async function loadVoiceSamples() {
   try {
     const res = await axios.get(`${API_BASE}/v1/voice-samples`);
@@ -83,33 +89,31 @@ function handleTextFileUpload(event) {
   if (!file) return;
   
   const sizeKB = (file.size / 1024).toFixed(1);
-async function synthesize() {
-  loading.value = true;
-  error.value = '';
-  audioSrc.value = '';
-  audioBlob.value = null;
+  uploadedFileName.value = file.name;
+  uploadedFileSize.value = `${sizeKB} KB`;
   
-  try {
-    const payload = {
-      text: text.value,
-      language: language.value,
-      speed: speed.value,
-    };
-    
-    if (selectedVoiceSample.value) {
-      payload.voice_sample_id = selectedVoiceSample.value;
-    }
-    
-    const res = await axios.post(`${API_BASE}/v1/chat`, payload);
-    const { wav_base64 } = res.data;
-    if (!wav_base64) throw new Error('No audio returned');
-    audioSrc.value = `data:audio/wav;base64,${wav_base64}`;
-  } catch (err) {
-    error.value = err?.response?.data?.detail || err.message || 'Request failed';
-  } finally {
-    loading.value = false;
+  if (file.size < 200 * 1024) {
+    error.value = `Warning: File is only ${sizeKB} KB. For best results, use files larger than 200 KB.`;
+    setTimeout(() => { error.value = ''; }, 5000);
   }
-} const voiceName = selectedVoiceSample.value 
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    text.value = e.target.result;
+  };
+  reader.readAsText(file);
+}
+
+function downloadAudio() {
+  if (!audioSrc.value) return;
+  
+  // Create download link
+  const link = document.createElement('a');
+  link.href = audioSrc.value;
+  
+  // Generate filename with timestamp
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const voiceName = selectedVoiceSample.value 
     ? voiceSamples.value.find(s => s.id === selectedVoiceSample.value)?.name || 'default'
     : 'default';
   link.download = `tts-${voiceName}-${timestamp}.wav`;
@@ -117,21 +121,14 @@ async function synthesize() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-})();
-
-async function loadVoiceSamples() {
-  try {
-    const res = await axios.get(`${API_BASE}/v1/voice-samples`);
-    voiceSamples.value = res.data.samples;
-  } catch (err) {
-    console.error('Failed to load voice samples:', err);
-  }
 }
 
 async function synthesize() {
   loading.value = true;
   error.value = '';
   audioSrc.value = '';
+  audioBlob.value = null;
+  
   try {
     const payload = {
       text: text.value,
@@ -159,6 +156,46 @@ onMounted(() => {
 });
 </script>
 
+<style scoped>
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.header h1 {
+  margin: 0;
+}
+.settings-link {
+  color: #4a90e2;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.settings-link:hover {
+  background: #f0f0f0;
+}
+textarea {
+  width: 100%;
+  font: inherit;
+}
+input, select {
+  width: 100%;
+  font: inherit;
+  padding: 0.5rem;
+}
+select {
+  width: calc(100% + 1rem);
+  margin-left: -0.5rem;
+}
 button {
   padding: 0.5rem 1rem;
   font: inherit;
@@ -229,50 +266,5 @@ button:disabled {
 }
 .download-button:hover:not(:disabled) {
   background: #229954;
-} display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-}
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-.header h1 {
-  margin: 0;
-}
-.settings-link {
-  color: #4a90e2;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-.settings-link:hover {
-  background: #f0f0f0;
-}
-textarea {
-  width: 100%;
-  font: inherit;
-}
-input, select {
-  width: 100%;
-  font: inherit;
-  padding: 0.5rem;
-}
-select {
-  width: calc(100% + 1rem);
-  margin-left: -0.5rem;
-}
-button {
-  width: 10rem;
-  padding: 0.5rem;
-  font: inherit;
-}
-.error {
-  color: #c00;
 }
 </style>
