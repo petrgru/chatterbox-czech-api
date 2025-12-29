@@ -137,7 +137,7 @@ class TTSService:
                 except ImportError:
                     pass
 
-    def synthesize(self, text: str, language: str = "cs", speed: float = 1.0) -> Tuple[str, float]:
+    def synthesize(self, text: str, language: str = "cs", speed: float = 1.0, voice_sample_path: Optional[str] = None) -> Tuple[str, float]:
         """Generate speech audio and return (base64_wav, duration_ms)."""
         if not text.strip():
             raise ValueError("Text must not be empty")
@@ -162,7 +162,11 @@ class TTSService:
             with autocast_ctx:
                 # ChatterboxMultilingualTTS expects `language_id`; Czech is not in the
                 # provided multilingual map, so we pass None to avoid validation errors.
-                wav = self._model.generate(text, language_id=None)
+                wav = self._model.generate(
+                    text, 
+                    language_id=None,
+                    audio_prompt_path=voice_sample_path
+                )
         elapsed_ms = (perf_counter() - start) * 1000
 
         # Apply speed adjustment by resampling

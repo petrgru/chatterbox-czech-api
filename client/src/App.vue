@@ -1,6 +1,10 @@
 <template>
   <main class="page">
-    <h1>Czech TTS Demo</h1>
+    <header class="header">
+      <h1>Czech TTS Demo</h1>
+      <router-link to="/settings" class="settings-link">⚙️ Voice Samples</router-link>
+    </header>
+    
     <label>
       Text to synthesize
       <textarea v-model="text" rows="4" placeholder="Napište text..."></textarea>
@@ -13,6 +17,15 @@
       Speech speed: {{ speed.toFixed(1) }}x
       <input v-model.number="speed" type="range" min="0.7" max="1.3" step="0.1" />
     </label>
+    <label>
+      Voice Sample
+      <select v-model="selectedVoiceSample">
+        <option value="">Default Voice</option>
+        <option v-for="sample in voiceSamples" :key="sample.id" :value="sample.id">
+          {{ sample.name }}
+        </option>
+      </select>
+    </label>
     <button :disabled="loading || !text.trim()" @click="synthesize">
       {{ loading ? 'Working...' : 'Synthesize' }}
     </button>
@@ -23,16 +36,17 @@
 
 <script setup>
 import axios from 'axios';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const text = ref('Třetí přání je výkon pohřební služby');
 const language = ref('cs');
 const speed = ref(1.1);
+const selectedVoiceSample = ref('');
+const voiceSamples = ref([]);
 const audioSrc = ref('');
 const loading = ref(false);
 const error = ref('');
 
-// Try to auto-detect API base URL based on current origin
 const API_BASE = import.meta.env.VITE_API_BASE || (() => {
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
@@ -40,16 +54,31 @@ const API_BASE = import.meta.env.VITE_API_BASE || (() => {
   return `${protocol}//${hostname}:${port}`;
 })();
 
+async function loadVoiceSamples() {
+  try {
+    const res = await axios.get(`${API_BASE}/v1/voice-samples`);
+    voiceSamples.value = res.data.samples;
+  } catch (err) {
+    console.error('Failed to load voice samples:', err);
+  }
+}
+
 async function synthesize() {
   loading.value = true;
   error.value = '';
   audioSrc.value = '';
   try {
-    const res = await axios.post(`${API_BASE}/v1/chat`, {
+    const payload = {
       text: text.value,
       language: language.value,
       speed: speed.value,
-    });
+    };
+    
+    if (selectedVoiceSample.value) {
+      payload.voice_sample_id = selectedVoiceSample.value;
+    }
+    
+    const res = await axios.post(`${API_BASE}/v1/chat`, payload);
     const { wav_base64 } = res.data;
     if (!wav_base64) throw new Error('No audio returned');
     audioSrc.value = `data:audio/wav;base64,${wav_base64}`;
@@ -59,6 +88,10 @@ async function synthesize() {
     loading.value = false;
   }
 }
+
+onMounted(() => {
+  loadVoiceSamples();
+});
 </script>
 
 <style scoped>
@@ -73,13 +106,38 @@ async function synthesize() {
   gap: 0.75rem;
   padding: 1rem;
 }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.header h1 {
+  margin: 0;
+}
+.settings-link {
+  color: #4a90e2;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.settings-link:hover {
+  background: #f0f0f0;
+}
 textarea {
   width: 100%;
   font: inherit;
 }
-input {
-  width: 8rem;
+input, select {
+  width: 100%;
   font: inherit;
+  padding: 0.5rem;
+}
+select {
+  width: calc(100% + 1rem);
+  margin-left: -0.5rem;
 }
 button {
   width: 10rem;

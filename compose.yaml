@@ -1,5 +1,6 @@
 services:
   api:
+    build: .
     image: chatterbox-czech-api:latest
     environment:
       DEVICE: cuda
