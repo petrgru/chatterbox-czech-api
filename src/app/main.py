@@ -31,7 +31,7 @@ def health() -> dict:
 @app.post("/v1/chat", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
     try:
-        wav_b64, duration_ms = _tts_service.synthesize(text=request.text, language=request.language)
+        wav_b64, duration_ms = _tts_service.synthesize(text=request.text, language=request.language, speed=request.speed)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ImportError as exc:
@@ -48,6 +48,7 @@ def chat(request: ChatRequest) -> ChatResponse:
         duration_ms=duration_ms,
         sample_rate=_tts_service.sample_rate,
         language=request.language,
+        speed=request.speed,
         note="wav_base64 contains WAV bytes encoded as base64",
     )
 

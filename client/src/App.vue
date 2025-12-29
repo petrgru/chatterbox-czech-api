@@ -9,6 +9,10 @@
       Language code
       <input v-model="language" />
     </label>
+    <label>
+      Speech speed: {{ speed.toFixed(1) }}x
+      <input v-model.number="speed" type="range" min="0.7" max="1.3" step="0.1" />
+    </label>
     <button :disabled="loading || !text.trim()" @click="synthesize">
       {{ loading ? 'Working...' : 'Synthesize' }}
     </button>
@@ -23,11 +27,18 @@ import { ref } from 'vue';
 
 const text = ref('Třetí přání je výkon pohřební služby');
 const language = ref('cs');
+const speed = ref(1.1);
 const audioSrc = ref('');
 const loading = ref(false);
 const error = ref('');
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+// Try to auto-detect API base URL based on current origin
+const API_BASE = import.meta.env.VITE_API_BASE || (() => {
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const port = hostname === 'localhost' ? '8000' : '8000';
+  return `${protocol}//${hostname}:${port}`;
+})();
 
 async function synthesize() {
   loading.value = true;
@@ -37,6 +48,7 @@ async function synthesize() {
     const res = await axios.post(`${API_BASE}/v1/chat`, {
       text: text.value,
       language: language.value,
+      speed: speed.value,
     });
     const { wav_base64 } = res.data;
     if (!wav_base64) throw new Error('No audio returned');

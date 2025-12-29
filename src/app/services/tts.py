@@ -137,7 +137,7 @@ class TTSService:
                 except ImportError:
                     pass
 
-    def synthesize(self, text: str, language: str = "cs") -> Tuple[str, float]:
+    def synthesize(self, text: str, language: str = "cs", speed: float = 1.0) -> Tuple[str, float]:
         """Generate speech audio and return (base64_wav, duration_ms)."""
         if not text.strip():
             raise ValueError("Text must not be empty")
@@ -164,6 +164,19 @@ class TTSService:
                 # provided multilingual map, so we pass None to avoid validation errors.
                 wav = self._model.generate(text, language_id=None)
         elapsed_ms = (perf_counter() - start) * 1000
+
+        # Apply speed adjustment by resampling
+        if speed != 1.0:
+            try:
+                import torch
+                import torchaudio.transforms as T
+                
+                original_sr = self.sample_rate
+                target_sr = int(original_sr * speed)
+                resampler = T.Resample(orig_freq=original_sr, new_freq=target_sr).to(wav.device)
+                wav = resampler(wav)
+            except Exception as e:
+                logger.warning("Speed adjustment failed: %s", e)
 
         # wav is expected to be a torch Tensor shaped (channels, samples)
         samples = wav.shape[-1] if hasattr(wav, "shape") else 0
