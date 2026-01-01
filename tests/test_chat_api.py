@@ -271,3 +271,75 @@ def test_chat_special_characters(mock_tts_service):
     assert response.status_code == 200
     data = response.json()
     assert data["reply"] == special_text
+
+
+def test_chat_with_newlines_and_tabs(mock_tts_service):
+    """Test synthesis with newlines and tabs."""
+    text_with_whitespace = "Line 1\nLine 2\tTabbed\r\nLine 3"
+    
+    response = client.post(
+        "/v1/chat",
+        json={"text": text_with_whitespace}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["reply"] == text_with_whitespace
+
+
+def test_chat_with_unicode_emojis(mock_tts_service):
+    """Test synthesis with Unicode emojis."""
+    text_with_emoji = "Hello 👋 World 🌍! Czech: 🇨🇿"
+    
+    response = client.post(
+        "/v1/chat",
+        json={"text": text_with_emoji}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["reply"] == text_with_emoji
+
+
+def test_chat_with_null_voice_sample_id(mock_tts_service):
+    """Test synthesis with explicitly null voice_sample_id."""
+    response = client.post(
+        "/v1/chat",
+        json={"text": "Test", "voice_sample_id": None}
+    )
+    
+    assert response.status_code == 200
+    mock_tts_service.synthesize.assert_called_once_with(
+        text="Test",
+        language="cs",
+        speed=1.1,
+        voice_sample_path=None
+    )
+
+
+def test_chat_with_all_optional_params(mock_tts_service):
+    """Test synthesis with all optional parameters specified."""
+    with patch("app.main._voice_sample_manager") as mock_manager:
+        mock_manager.get_sample_path.return_value = "/tmp/voice.wav"
+        
+        response = client.post(
+            "/v1/chat",
+            json={
+                "text": "Complete test",
+                "language": "en",
+                "speed": 0.9,
+                "voice_sample_id": "sample-xyz"
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["language"] == "en"
+        assert data["speed"] == 0.9
+        
+        mock_tts_service.synthesize.assert_called_once_with(
+            text="Complete test",
+            language="en",
+            speed=0.9,
+            voice_sample_path="/tmp/voice.wav"
+        )

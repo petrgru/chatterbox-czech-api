@@ -333,3 +333,44 @@ def test_get_sample_path_integration(mock_voice_sample_manager):
         mock_tts.synthesize.assert_called_once()
         call_args = mock_tts.synthesize.call_args
         assert call_args.kwargs["voice_sample_path"] == "/tmp/test.wav"
+
+
+def test_upload_sample_not_found_after_upload(mock_voice_sample_manager):
+    """Test edge case where sample is not found after upload."""
+    test_wav = create_test_wav()
+    test_b64 = base64.b64encode(test_wav).decode("ascii")
+    
+    # Configure mock to return a sample ID but then not find it
+    mock_voice_sample_manager.upload_sample.return_value = "sample-missing"
+    mock_voice_sample_manager.list_samples.return_value = []  # Sample not in list
+    
+    response = client.post(
+        "/v1/voice-samples",
+        json={"name": "Test", "audio_base64": test_b64}
+    )
+    
+    assert response.status_code == 500
+    assert "Failed to retrieve uploaded sample" in response.json()["detail"]
+
+
+def test_upload_with_extremely_long_name(mock_voice_sample_manager):
+    """Test uploading with an extremely long name."""
+    test_wav = create_test_wav()
+    test_b64 = base64.b64encode(test_wav).decode("ascii")
+    long_name = "A" * 10000  # 10K character name
+    
+    mock_voice_sample_manager.upload_sample.return_value = "sample-long-name"
+    mock_voice_sample_manager.list_samples.return_value = [{
+        "id": "sample-long-name",
+        "name": long_name,
+        "created_at": "2024-01-01T00:00:00",
+        "file_size": len(test_wav)
+    }]
+    
+    response = client.post(
+        "/v1/voice-samples",
+        json={"name": long_name, "audio_base64": test_b64}
+    )
+    
+    assert response.status_code == 200
+    assert response.json()["name"] == long_name
