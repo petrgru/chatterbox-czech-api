@@ -16,8 +16,6 @@ services:
             - capabilities: [gpu]
   client:
     build: ./client
-    environment:
-      VITE_API_BASE: http://api:8000
     ports:
       - "4173:4173"
     depends_on:

@@ -15,7 +15,7 @@
           <label class="file-label">
             <input 
               type="file" 
-              accept="audio/wav,audio/mp3,audio/*" 
+              accept="audio/wav,audio/*" 
               @change="handleFileSelect"
               ref="fileInput"
             />
@@ -104,12 +104,8 @@
 import axios from 'axios';
 import { ref, onMounted, onUnmounted } from 'vue';
 
-const API_BASE = import.meta.env.VITE_API_BASE || (() => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = hostname === 'localhost' ? '8000' : '8000';
-  return `${protocol}//${hostname}:${port}`;
-})();
+// Use same-origin proxy routes served by Node (Express)
+const API_BASE = '';
 
 // File upload state
 const fileInput = ref(null);

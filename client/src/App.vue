@@ -58,9 +58,9 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-const API_BASE = window.location.origin.includes('localhost')
-  ? 'http://localhost:8000'
-  : window.location.origin.replace(/:\d+/, ':8000');
+// Use same-origin proxy routes served by Node (Express)
+const API_BASE = '';
+console.log('Using API_BASE via proxy routes:', API_BASE);
 
 const text = ref('Třetí přání je výkon pohřební služby');
 const language = ref('cs');
@@ -129,9 +129,19 @@ async function synthesize() {
   audioSrc.value = '';
   audioBlob.value = null;
   
+  // Validate text length - model has issues with very short texts
+  const trimmedText = text.value.trim();
+  const wordCount = trimmedText.split(/\s+/).length;
+  
+  if (wordCount < 3) {
+    error.value = 'Text is too short. Please enter at least 3 words for best results.';
+    loading.value = false;
+    return;
+  }
+  
   try {
     const payload = {
-      text: text.value,
+      text: trimmedText,
       language: language.value,
       speed: speed.value,
     };
@@ -140,12 +150,21 @@ async function synthesize() {
       payload.voice_sample_id = selectedVoiceSample.value;
     }
     
+    console.log('Sending request to proxy:', `${API_BASE}/v1/chat`);
+    console.log('Payload:', payload);
+    
     const res = await axios.post(`${API_BASE}/v1/chat`, payload);
     const { wav_base64 } = res.data;
     if (!wav_base64) throw new Error('No audio returned');
     audioSrc.value = `data:audio/wav;base64,${wav_base64}`;
   } catch (err) {
-    error.value = err?.response?.data?.detail || err.message || 'Request failed';
+    console.error('Request error:', err);
+    console.error('Error details:', err.response);
+    if (err.code === 'ERR_NETWORK') {
+      error.value = `Network Error: Cannot reach proxy/API. Is the API running?`;
+    } else {
+      error.value = err?.response?.data?.detail || err.message || 'Request failed';
+    }
   } finally {
     loading.value = false;
   }
